@@ -2,7 +2,7 @@
 library(devtools)
 library(bengaltiger)
 ## If bengaltiger is not installed do:
-## install_github("martingerdin/bengaltiger@develop")
+##install_github("martingerdin/bengaltiger@develop")
 data.names <- list(swetrau = "simulated-swetrau-data.csv",
                    titco = "titco-I-limited-dataset-v1.csv")
 data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
@@ -14,22 +14,25 @@ variable.names.list <- list(swetrau = c("pt_age_yrs", "pt_Gender", "ed_gcs_sum",
                                         "res_survival", "ISS", 
                                         "DateTime_Of_Trauma"),
                             titco = c("age", "sex", "gcs_t_1", "sbp_1", "rr_1",
-                                      "m30d", "iss", "doi", "toi"))
+                                      "m30d", "iss", "doi_toi"))
 
 ## Doi and toi in the same variable
-as.POSIXct(paste(variable.names.list$doi, variable.names.list$toi), format="%Y-%m-%d %H:%M:%S")
+doi_toi <- as.POSIXct(paste(data.list$doi, data.list$toi), format="%Y-%m-%d %H:%M:%S")
 
 ## Titco and swetrau in a variable
-combineddatasets <- rbind("simulated-swetrau-data.csv" , "titco-I-limited-dataset-v1.csv")
+combineddatasets <- rbind(data.list$titco , data.list$swetrau)
 
+##Calling Variableselection function
 selected.data.list <- lapply(names(variable.names.list), VariableSelection,
                              data = data.list,
                              variable.names.list = variable.names.list)
 
+##Calling NACounterVariable function
 selected.data.list <- lapply(names(variable.names.list), NACounterVariable,
                              data = data.list,
                              variable.names.list = variable.names.list)
 
+##Calling NACounterDataSet function
 selected.data.list <- lapply(names(variable.names.list), NACounterDataSet,
                              data = data.list,
                              variable.names.list = variable.names.list)
