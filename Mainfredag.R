@@ -1,15 +1,22 @@
 ## Import data from a file called "data" which contains the swedish and indian register
 library(devtools)
 library(bengaltiger)
+source("VariableSelection.R")
+source("../Desktop/functions/NACounterDataSet.R")
+source("../Desktop/functions/NACounterVariable.R")
+source("../Desktop/functions/DataCleaning.R")
+source("../Desktop/functions/MyReplace.R")
 
 ## If bengaltiger is not installed do:
-## install_github("martingerdin/bengaltiger@develop")
+##install_github("martingerdin/bengaltiger@develop")
 data.names <- list(swetrau = "simulated-swetrau-data.csv",
                    titco = "titco-I-limited-dataset-v1.csv")
-data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
-
+data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../Desktop/")
 ## Add 30-day mortality to titco data
 data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
+
+## Create column called doi_toi inside titco data.frame and merge doi + toi columns to it
+data.list$titco$doi_toi <- paste(data.list$titco$doi, data.list$titco$toi)
 
 ## Create study sample from selected variables from either sweden or india.
 variable.names.list <- list(swetrau = c("pt_age_yrs", "pt_Gender", "ed_gcs_sum",
@@ -17,31 +24,24 @@ variable.names.list <- list(swetrau = c("pt_age_yrs", "pt_Gender", "ed_gcs_sum",
                                         "res_survival", "ISS", 
                                         "DateTime_Of_Trauma"),
                             titco = c("age", "sex", "gcs_t_1", "sbp_1", "rr_1",
-                                      "m30d", "iss", "doi", "toi"))
+                                      "m30d", "iss", "doi_toi"))
+
+##Calling Variableselection function to select 8 columns from variable name list
 selected.data.list <- lapply(names(variable.names.list), VariableSelection,
                              data = data.list,
                              variable.names.list = variable.names.list)
 
-## Doi and toi in the same variable
-doi_toi <- as.POSIXct(paste(data.list$doi, data.list$toi), format="%Y-%m-%d %H:%M:%S")
+## Rename Swedish column names with india column names
+names(selected.data.list[[1]]) <- names(selected.data.list[[2]])
 
-## Titco and swetrau in a variable
-combineddatasets <- rbind(data.list$titco , data.list$swetrau)
+## Merge Swedish and India Selected data list
+combineddatasets <- rbind(selected.data.list[[1]], selected.data.list[[2]])
 
-##Calling Variableselection function
-selected.data.list <- lapply(names(variable.names.list), VariableSelection,
-                             data = data.list,
-                             variable.names.list = variable.names.list)
+##Calling NACounterVariable function and saving to new variable
+numberOfNAVariable <- NACounterVariable(combineddatasets)
 
-##Calling NACounterVariable function
-selected.data.list <- lapply(names(variable.names.list), NACounterVariable,
-                             data = data.list,
-                             variable.names.list = variable.names.list)
-
-##Calling NACounterDataSet function
-selected.data.list <- lapply(names(variable.names.list), NACounterDataSet,
-                             data = data.list,
-                             variable.names.list = variable.names.list)
+##Calling NACounterDataSet function and saving to new variable
+numberOfNADataSet <- NACounterDataSet(combineddatasets)
 
 ## Codebook  
 codebook <- list(pt_age_yrs = list(full.label = "Patient age, years",
