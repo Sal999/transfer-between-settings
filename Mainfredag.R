@@ -2,16 +2,17 @@
 library(devtools)
 library(bengaltiger)
 source("VariableSelection.R")
-source("../Desktop/functions/NACounterDataSet.R")
-source("../Desktop/functions/NACounterVariable.R")
-source("../Desktop/functions/DataCleaning.R")
-source("../Desktop/functions/MyReplace.R")
+source("NACounterDataSet.R")
+source("NACounterVariable.R")
+source("DataCleaning.R")
+source("MyReplace.R")
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@develop")
 data.names <- list(swetrau = "simulated-swetrau-data.csv",
                    titco = "titco-I-limited-dataset-v1.csv")
-data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../Desktop/")
+data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
+
 ## Add 30-day mortality to titco data
 data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
 
@@ -27,44 +28,35 @@ variable.names.list <- list(swetrau = c("pt_age_yrs", "pt_Gender", "ed_gcs_sum",
                                       "m30d", "iss", "doi_toi"))
 
 ##Calling Variableselection function to select 8 columns from variable name list
-selected.data.list <- lapply(names(variable.names.list), VariableSelection,
+dataNames <- function() setNames(nm = names(data.names))
+selected.data.list <- lapply(dataNames(), VariableSelection,
                              data = data.list,
                              variable.names.list = variable.names.list)
 
 ## Rename Swedish column names with india column names
 names(selected.data.list[[1]]) <- names(selected.data.list[[2]])
 
+## Add cohort name to dataset
+selected.data.list <- lapply(dataNames(), function(name) {
+    dataset <- selected.data.list[[name]]
+    dataset$dataset <- name
+    return(dataset)
+})
+
 ## Merge Swedish and India Selected data list
-combineddatasets <- rbind(selected.data.list[[1]], selected.data.list[[2]])
+combineddatasets <- do.call(rbind, selected.data.list)
 
-##Calling NACounterVariable function and saving to new variable
-numberOfNAVariable <- NACounterVariable(combineddatasets)
+## Add combineddatasets to list
+all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
-##Calling NACounterDataSet function and saving to new variable
-numberOfNADataSet <- NACounterDataSet(combineddatasets)
+## Calling NACounterVariable function and saving to new variable
+numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
+
+## Calling NACounterDataSet function and saving to new variable
+numberOfNADataSet <- lapply(all.data.list, NACounterDataSet)
 
 ## Codebook  
-codebook <- list(pt_age_yrs = list(full.label = "Patient age, years",
-                                   abbreviated.label = "Age, years"),
-                 pt_Gender = list(full.label = "Patient sex",
-                                  abbreviated.label = "Sex"),
-                 ed_gcs_sum = list(full.label = "Glasgow coma scale",
-                                   abbreviated.label = "GCS"),
-                 ed_sbp_value = list(full.label = "Systolic blood pressure",
-                                     abbreviated.label = "SBP"),
-                 ed_rr_value = list(full.label = "Respiratory rate",
-                                    abbreviated.label = "RR"),
-                 res_survival = list(full.label = "30-day survival",
-                                     abbreviated.label = "30-day survival"),
-                 ISS = list(full.label = "Injury severity score",
-                            abbreviated.label = "ISS"),
-                 NISS = list(full.label = "New injury severity score",
-                             abbreviated.label = "NISS"),
-                 Datetime_of_trauma = list(full.label = "Datetime of trauma",
-                                    abbreviated.label = "Dateoftrauma"),
-                 group = list(full.label = "Group",
-                              abbreviated.label = ""),
-                 age = list(full.label = "Patient age, years",
+codebook <- list(age = list(full.label = "Patient age, years",
                             abbreviated.label = "Age, years"),
                  sex = list(full.label = "Patient sex",
                             abbreviated.label = "Sex"),
@@ -78,10 +70,6 @@ codebook <- list(pt_age_yrs = list(full.label = "Patient age, years",
                           abbreviated.label = "30-day survival"),
                  iss = list(full.label = "Injury severity score",
                           abbreviated.label = "ISS"),
-                 xxx = list(full.label = "New injury severity score",
-                               abbreviated.label = "NISS"),
-                 datetimeindia = list(full.label = "Date of injury and time of injury",
-                             abbreviated.label = "DatetimeIndia"), 
-                 Group = list(full.label = "Group",
-                             abbreviated.label = "mm"))
+                 doi_toi = list(full.label = "Date of injury and time of injury"), 
+                 Group = list(full.label = "Dataset")
 
