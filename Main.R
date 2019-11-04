@@ -11,7 +11,7 @@ source("MyReplace.R")
 ##install_github("martingerdin/bengaltiger@develop")
 data.names <- list(swetrau = "simulated-swetrau-data.csv",
                    titco = "titco-I-limited-dataset-v1.csv")
-data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
+data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../Desktop/data/")
 
 ## Add 30-day mortality to titco data
 data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
@@ -38,10 +38,13 @@ names(selected.data.list[[1]]) <- names(selected.data.list[[2]])
 
 ## Add cohort name to dataset
 selected.data.list <- lapply(dataNames(), function(name) {
-    dataset <- selected.data.list[[name]]
-    dataset$dataset <- name
-    return(dataset)
+  dataset <- selected.data.list[[name]]
+  dataset$dataset <- name
+  return(dataset)
 })
+
+## Clean data list of inconsistent values, e.g 1 to Male, 2 to Female etc.
+selected.data.list$swetrau <- DataCleaning(selected.data.list$swetrau)
 
 ## Merge Swedish and India Selected data list
 combineddatasets <- do.call(rbind, selected.data.list)
@@ -67,9 +70,8 @@ codebook <- list(age = list(full.label = "Patient age, years",
                  rr_1 = list(full.label = "Respiratory rate",
                              abbreviated.label = "RR"),
                  m30d = list(full.label = "30-day survival",
-                          abbreviated.label = "30-day survival"),
+                             abbreviated.label = "30-day survival"),
                  iss = list(full.label = "Injury severity score",
-                          abbreviated.label = "ISS"),
+                            abbreviated.label = "ISS"),
                  doi_toi = list(full.label = "Date of injury and time of injury"), 
-                 Group = list(full.label = "Dataset")
-
+                 Group = list(full.label = "Dataset"))
