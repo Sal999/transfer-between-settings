@@ -6,6 +6,7 @@ source("NACounterDataSet.R")
 source("NACounterVariable.R")
 source("DataCleaning.R")
 source("MyReplace.R")
+source("CreateSampleCharacteristicsTable.R")
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@develop")
@@ -52,6 +53,9 @@ combineddatasets <- do.call(rbind, selected.data.list)
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
+##Calling SampleCharacteristicsSample function
+raw.table <- CreateSampleCharacteristicsTable(study.sample = combineddatasets, data.dictionary = NULL,group = combineddatasets$datasets)
+
 ## Calling NACounterVariable function and saving to new variable
 numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
 
@@ -74,4 +78,4 @@ codebook <- list(age = list(full.label = "Patient age, years",
                  iss = list(full.label = "Injury severity score",
                             abbreviated.label = "ISS"),
                  doi_toi = list(full.label = "Date of injury and time of injury"), 
-                 Group = list(full.label = "Dataset"))
+                 dataset = list(full.label = "Dataset"))
