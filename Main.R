@@ -52,7 +52,7 @@ combineddatasets <- do.call(rbind, selected.data.list)
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
-
+## Create Sample Characteristics table of the data sets
 X <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combineddatasets,
                                                   
                                                   codebook = codebook,
