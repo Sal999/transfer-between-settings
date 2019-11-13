@@ -6,7 +6,6 @@ source("NACounterDataSet.R")
 source("NACounterVariable.R")
 source("DataCleaning.R")
 source("MyReplace.R")
-source("CreateSampleCharacteristicsTable.R")
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@develop")
@@ -53,9 +52,21 @@ combineddatasets <- do.call(rbind, selected.data.list)
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
-##Calling SampleCharacteristicsSample function
-raw.table <- CreateSampleCharacteristicsTable(study.sample = combineddatasets, data.dictionary = NULL,group = combineddatasets$datasets)
 
+X <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combineddatasets,
+                                                  
+                                                  codebook = codebook,
+                                                  save.to.disk = FALSE,
+                                                  save.to.results = FALSE,
+                                                  table.name = "SwetrauVstitco",
+                                                  include.overall = FALSE,
+                                                  ##return.pretty = TRUE,
+                                                  group = "dataset") 
+
+
+##Calling SampleCharacteristicsSample function
+##raw.table <- CreateSampleCharacteristicsTable(study.sample = combineddatasets, data.dictionary = codebook , group = combineddatasets$datasets)
+test.list <- TableOneCreator(combineddatasets, codebook = codebook)
 ## Calling NACounterVariable function and saving to new variable
 numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
 
@@ -77,5 +88,8 @@ codebook <- list(age = list(full.label = "Patient age, years",
                              abbreviated.label = "30-day survival"),
                  iss = list(full.label = "Injury severity score",
                             abbreviated.label = "ISS"),
-                 doi_toi = list(full.label = "Date of injury and time of injury"), 
-                 dataset = list(full.label = "Dataset"))
+                 doi_toi = list(full.label = "Date of injury and time of injury",
+                                abbreviated.label = "DATE AND TIME"), 
+                 dataset = list(full.label = "Dataset",
+                                abbreviated.label = "DATASET"))
+
