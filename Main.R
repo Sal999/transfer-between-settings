@@ -6,12 +6,14 @@ source("NACounterDataSet.R")
 source("NACounterVariable.R")
 source("DataCleaning.R")
 source("MyReplace.R")
+source("AddISSTraumaSeverityIndicator.R")
+
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@develop")
 data.names <- list(swetrau = "simulated-swetrau-data.csv",
                    titco = "titco-I-limited-dataset-v1.csv")
-data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
+data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../Desktop/data/")
 
 ## Add 30-day mortality to titco data
 data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
@@ -38,9 +40,9 @@ names(selected.data.list[[1]]) <- names(selected.data.list[[2]])
 
 ## Add cohort name to dataset
 selected.data.list <- lapply(dataNames(), function(name) {
-    dataset <- selected.data.list[[name]]
-    dataset$dataset <- name
-    return(dataset)
+  dataset <- selected.data.list[[name]]
+  dataset$dataset <- name
+  return(dataset)
 })
 
 ## Clean data list of inconsistent values, e.g 1 to Male, 2 to Female etc.
@@ -85,5 +87,12 @@ table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combinedd
                                                         save.to.results = FALSE,
                                                         table.name = "SwetrauVstitco",
                                                         include.overall = FALSE,
-                                                        ##return.pretty = TRUE,
+                                                        return.pretty = TRUE,
                                                         group = "dataset") 
+
+##T-RTS added
+combineddatasets <- bengaltiger::AddTriageRevisedTraumaScore(combineddatasets)
+
+##Iss >15 marked "yes" which corresponds to major trauma
+combineddatasets <- AddISSTraumaSeverityIndicator(combineddatasets, 
+                                          severity.variable.name = "iss")
