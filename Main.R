@@ -11,7 +11,7 @@ source("MyReplace.R")
 ##install_github("martingerdin/bengaltiger@develop")
 data.names <- list(swetrau = "simulated-swetrau-data.csv",
                    titco = "titco-I-limited-dataset-v1.csv")
-data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../Desktop/data/")
+data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
 
 ## Add 30-day mortality to titco data
 data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
@@ -38,9 +38,9 @@ names(selected.data.list[[1]]) <- names(selected.data.list[[2]])
 
 ## Add cohort name to dataset
 selected.data.list <- lapply(dataNames(), function(name) {
-  dataset <- selected.data.list[[name]]
-  dataset$dataset <- name
-  return(dataset)
+    dataset <- selected.data.list[[name]]
+    dataset$dataset <- name
+    return(dataset)
 })
 
 ## Clean data list of inconsistent values, e.g 1 to Male, 2 to Female etc.
@@ -52,21 +52,6 @@ combineddatasets <- do.call(rbind, selected.data.list)
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
-## Create Sample Characteristics table of the data sets
-X <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combineddatasets,
-                                                  
-                                                  codebook = codebook,
-                                                  save.to.disk = FALSE,
-                                                  save.to.results = FALSE,
-                                                  table.name = "SwetrauVstitco",
-                                                  include.overall = FALSE,
-                                                  ##return.pretty = TRUE,
-                                                  group = "dataset") 
-
-
-##Calling SampleCharacteristicsSample function
-##raw.table <- CreateSampleCharacteristicsTable(study.sample = combineddatasets, data.dictionary = codebook , group = combineddatasets$datasets)
-test.list <- TableOneCreator(combineddatasets, codebook = codebook)
 ## Calling NACounterVariable function and saving to new variable
 numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
 
@@ -89,7 +74,16 @@ codebook <- list(age = list(full.label = "Patient age, years",
                  iss = list(full.label = "Injury severity score",
                             abbreviated.label = "ISS"),
                  doi_toi = list(full.label = "Date of injury and time of injury",
-                                abbreviated.label = "DATE AND TIME"), 
+                                abbreviated.label = ""), 
                  dataset = list(full.label = "Dataset",
-                                abbreviated.label = "DATASET"))
+                                abbreviated.label = ""))
 
+## Create Sample Characteristics table of the data sets
+table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combineddatasets,
+                                                        codebook = codebook,
+                                                        save.to.disk = FALSE,
+                                                        save.to.results = FALSE,
+                                                        table.name = "SwetrauVstitco",
+                                                        include.overall = FALSE,
+                                                        ##return.pretty = TRUE,
+                                                        group = "dataset") 
