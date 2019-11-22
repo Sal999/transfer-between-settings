@@ -6,8 +6,6 @@ source("NACounterDataSet.R")
 source("NACounterVariable.R")
 source("DataCleaning.R")
 source("MyReplace.R")
-source("AddISSTraumaSeverityIndicator.R")
-
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@develop")
@@ -90,9 +88,8 @@ table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combinedd
                                                         return.pretty = TRUE,
                                                         group = "dataset") 
 
-##T-RTS added
-combineddatasets <- bengaltiger::AddTriageRevisedTraumaScore(combineddatasets)
+## Calculates the rts points of the given variables in the dataset
+combineddatasets[, c("trts_gcs", "trts_sbp", "trts_rr")] <- bengaltiger::GetRevisedTraumaScoreComponents(combineddatasets)
 
-##Iss >15 marked "yes" which corresponds to major trauma
-combineddatasets <- AddISSTraumaSeverityIndicator(combineddatasets, 
-                                          severity.variable.name = "iss")
+## Add new variable "major" in the dataset. If ISS is greater than 15, consider it a Major Trauma
+combineddatasets$major <- ifelse(combineddatasets$iss > 15, "Yes", "No")
