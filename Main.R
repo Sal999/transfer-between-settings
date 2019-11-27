@@ -88,8 +88,11 @@ table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combinedd
                                                         return.pretty = TRUE,
                                                         group = "dataset") 
 
-## Calculates the rts points of the given variables in the dataset
+## Gets the revised trauma score components from the data set and adds them to the dataset
 combineddatasets[, c("trts_gcs", "trts_sbp", "trts_rr")] <- bengaltiger::GetRevisedTraumaScoreComponents(combineddatasets)
 
 ## Add new variable "major" in the dataset. If ISS is greater than 15, consider it a Major Trauma
 combineddatasets$major <- ifelse(combineddatasets$iss > 15, "Yes", "No")
+
+## Split dataset into three categories Training (Development), Validation, Test (Updating) and add them as a new column
+combineddatasets <- bengaltiger::SplitDataset(combineddatasets, split.proportions = as.numeric(c("0.333333","0.333333","0.333333")), return.data.frame = TRUE)
