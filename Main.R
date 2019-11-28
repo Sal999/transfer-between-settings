@@ -16,6 +16,9 @@ data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../De
 ## Add 30-day mortality to titco data
 data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
 
+## Make titco age numeric
+data.list$titco$age <- as.numeric(data.list$titco$age)
+
 ## Create column called doi_toi inside titco data.frame and merge doi + toi columns to it
 data.list$titco$doi_toi <- paste(data.list$titco$doi, data.list$titco$toi)
 
@@ -33,8 +36,12 @@ selected.data.list <- lapply(dataNames(), VariableSelection,
                              data = data.list,
                              variable.names.list = variable.names.list)
 
-## Rename Swedish column names with india column names
-names(selected.data.list[[1]]) <- names(selected.data.list[[2]])
+## Rename column names in other datasets with india column names
+not.titco <- names(selected.data.list) != "titco"
+selected.data.list[not.titco] <- lapply(selected.data.list[not.titco], function(selected.data) {
+    names(selected.data) <- names(selected.data.list$titco)
+    return(selected.data)
+})
 
 ## Add cohort name to dataset
 selected.data.list <- lapply(dataNames(), function(name) {
@@ -58,6 +65,15 @@ numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
 ## Calling NACounterDataSet function and saving to new variable
 numberOfNADataSet <- lapply(all.data.list, NACounterDataSet)
 
+## Gets the revised trauma score components from the data set and adds them to the dataset
+combineddatasets[, c("trts_gcs", "trts_sbp", "trts_rr")] <- bengaltiger::GetRevisedTraumaScoreComponents(combineddatasets, return.labels = TRUE)
+
+## Add new variable "major" in the dataset. If ISS is greater than 15, consider it a Major Trauma
+combineddatasets$major <- ifelse(combineddatasets$iss > 15, "Yes", "No")
+
+## Keep only complete cases
+combineddatasets <- combineddatasets[complete.cases(combineddatasets), ]
+
 ## Codebook  
 codebook <- list(age = list(full.label = "Patient age, years",
                             abbreviated.label = "Age, years"),
@@ -65,14 +81,22 @@ codebook <- list(age = list(full.label = "Patient age, years",
                             abbreviated.label = "Sex"),
                  gcs_t_1 = list(full.label = "Glasgow coma scale",
                                 abbreviated.label = "GCS"),
+                 trts_gcs = list(full.label = "Triage Revised Trauma Score - Glasgow coma scale",
+                                 abbreviated.label = "TRTS-GCS"),
                  sbp_1 = list(full.label = "Systolic blood pressure",
                               abbreviated.label = "SBP"),
+                 trts_sbp = list(full.label = "Triage Revised Trauma Score - Systolic blood pressure",
+                                 abbreviated.label = "TRTS-SBP"),                 
                  rr_1 = list(full.label = "Respiratory rate",
                              abbreviated.label = "RR"),
-                 m30d = list(full.label = "30-day survival",
-                             abbreviated.label = "30-day survival"),
+                 trts_rr = list(full.label = "Triage Revised Trauma Score - Respiratory rate",
+                                abbreviated.label = "TRTS-RR"),                                  
                  iss = list(full.label = "Injury severity score",
                             abbreviated.label = "ISS"),
+                 major = list(full.label = "Major trauma",
+                            abbreviated.label = ""),
+                 m30d = list(full.label = "30-day survival",
+                             abbreviated.label = ""),                 
                  doi_toi = list(full.label = "Date of injury and time of injury",
                                 abbreviated.label = ""), 
                  dataset = list(full.label = "Dataset",
@@ -81,18 +105,20 @@ codebook <- list(age = list(full.label = "Patient age, years",
 ## Create Sample Characteristics table of the data sets
 table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combineddatasets,
                                                         codebook = codebook,
+                                                        exclude.variables = "doi_toi",
                                                         save.to.disk = FALSE,
                                                         save.to.results = FALSE,
                                                         table.name = "SwetrauVstitco",
                                                         include.overall = FALSE,
                                                         return.pretty = TRUE,
-                                                        group = "dataset") 
-
-## Gets the revised trauma score components from the data set and adds them to the dataset
-combineddatasets[, c("trts_gcs", "trts_sbp", "trts_rr")] <- bengaltiger::GetRevisedTraumaScoreComponents(combineddatasets)
-
-## Add new variable "major" in the dataset. If ISS is greater than 15, consider it a Major Trauma
-combineddatasets$major <- ifelse(combineddatasets$iss > 15, "Yes", "No")
+                                                        group = "dataset")
 
 ## Split dataset into three categories Training (Development), Validation, Test (Updating) and add them as a new column
-combineddatasets <- bengaltiger::SplitDataset(combineddatasets, split.proportions = as.numeric(c("0.333333","0.333333","0.333333")), return.data.frame = TRUE)
+cohorts <- split(combineddatasets, combineddatasets$dataset)
+split.cohorts <- lapply(cohorts, bengaltiger::SplitDataset, events = c(300, 100, 100), event.variable.name = "m30d", event.level = "Yes", sample.names = c("Development", "Updating", "Validation"))
+## Extract development samples
+development.samples <- lapply(split.cohorts, function(cohort) cohort$Development)
+## Develop clinical prediction models
+prediction.models <- lapply(development.samples, ADD-MODEL-DEVELOPMENT-FUNCTION-HERE)
+
+
