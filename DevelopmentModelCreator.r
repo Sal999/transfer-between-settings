@@ -2,24 +2,22 @@
 #' 
 #' Creates model coefficients from development data, and saves in corresponding
 #' list entry.
-#' @param df.list Dataframe list.
+#' @param df A dataframe.
 #' @param test Logical. If TRUE only 5 bootstrap samples are used to estimate
 #'     the linear shrinkage factor. Defaults to FALSE.
-DevelopmentModelCreator <- function(df.list, test = FALSE) {
+DevelopmentModelCreator <- function(df, test = FALSE) {
 
-    ## Extract development data
-    development.data <- df.list$Development
     ## Create model function
     log.reg.model <- function(model.data) {
         ## Run model
-        model <- glm(res_survival ~ ed_gcs_sum + ed_sbp_value + ed_rr_value,
+        model <- glm(m30d ~ trts_gcs + trts_sbp + trts_rr,
                      data = model.data,
                      family = "binomial")
         ## Return model
         return(model)
     }
     ## Create development model in development sample
-    development.model <- coef(log.reg.model(development.data))
+    development.model <- log.reg.model(development.data)
     ## Estimate linear shrinkage factor
     get.prediction.slope <- function(original.data, indices) {  
         model.data <- original.data[indices,]  
@@ -38,9 +36,7 @@ DevelopmentModelCreator <- function(df.list, test = FALSE) {
         R = R
     )$t)
     ## Apply bootstrap results to shrink model coefficients
-    shrunk.development.model <- development.model * linear.shrinkage.factor
-    ## Create output
-    output <- list("Development" = development.data, "Validation" = df.list$Validation,  "Model coefficients" = shrunk.development.model)
+    development.model$coef <- development.model$coef * linear.shrinkage.factor
     ## Return output
-    return(output)
+    return(development.model)
 }
