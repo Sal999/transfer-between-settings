@@ -39,8 +39,8 @@ selected.data.list <- lapply(dataNames(), VariableSelection,
 ## Rename column names in other datasets with india column names
 not.titco <- names(selected.data.list) != "titco"
 selected.data.list[not.titco] <- lapply(selected.data.list[not.titco], function(selected.data) {
-    names(selected.data) <- names(selected.data.list$titco)
-    return(selected.data)
+  names(selected.data) <- names(selected.data.list$titco)
+  return(selected.data)
 })
 
 ## Add cohort name to dataset
@@ -94,7 +94,7 @@ codebook <- list(age = list(full.label = "Patient age, years",
                  iss = list(full.label = "Injury severity score",
                             abbreviated.label = "ISS"),
                  major = list(full.label = "Major trauma",
-                            abbreviated.label = ""),
+                              abbreviated.label = ""),
                  m30d = list(full.label = "30-day survival",
                              abbreviated.label = ""),                 
                  doi_toi = list(full.label = "Date of injury and time of injury",
@@ -115,10 +115,20 @@ table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combinedd
 
 ## Split dataset into three categories Training (Development), Validation, Test (Updating) and add them as a new column
 cohorts <- split(combineddatasets, combineddatasets$dataset)
-split.cohorts <- lapply(cohorts, bengaltiger::SplitDataset, events = c(300, 100, 100), event.variable.name = "m30d", event.level = "Yes", sample.names = c("Development", "Updating", "Validation"))
+split.cohorts <- lapply(cohorts, bengaltiger::SplitDataset, events = c(300,100,100), event.variable.name = "m30d", event.level = "Yes", sample.names = c("Development", "Updating", "Validation"))
+
 ## Extract development samples
 development.samples <- lapply(split.cohorts, function(cohort) cohort$Development)
+
+## Create Model Function
+log.reg.model <- function(model.data) {
+  ## Run model "gcs_t_1", "sbp_1", "rr_1"
+  model <- glm(m30d ~ gcs_t_1 + sbp_1 + rr_1,
+               data = model.data,
+               family = "binomial")
+  ## Return model
+  return(model)
+}
+
 ## Develop clinical prediction models
-prediction.models <- lapply(development.samples, ADD-MODEL-DEVELOPMENT-FUNCTION-HERE)
-
-
+prediction.models <- lapply(development.samples, log.reg.model)
