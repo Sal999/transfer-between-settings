@@ -13,6 +13,12 @@ DataCleaning <- function(df) {
     df$sex <- MyReplace(df$sex, 999, NA)
     df$m30d <- MyReplace(df$m30d, 1, "Yes")
     df$m30d <- MyReplace(df$m30d, 2, "No")
-    df$m30d <- MyReplace(df$m30d, 999, NA)    
+    df$m30d <-MyReplace(df$m30d, 999, NA)
+    df$sex <- MyReplace(df$sex, 999, NA)
+    df$age <- MyReplace(df$age, 999, NA)
+    df$gcs_t_1 <-MyReplace(df$gcs_t_1, 999, NA)
+    df$sbp_1 <-MyReplace(df$sbp_1, 999, NA)
+    df$rr_1 <-MyReplace(df$rr_1, 999, NA)
+    df$iss <-MyReplace(df$iss, 999, NA)
     return(df)
 }
