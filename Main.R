@@ -9,6 +9,10 @@ source("NACounterVariable.R")
 source("DataCleaning.R")
 source("MyReplace.R")
 source("DevelopmentModelCreator.R")
+source("UpdateModel.R")
+source("CalculateUndertriage.R")
+source("CalculateOvertriage.R")
+source("ValidateModel.R")
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@v1.1.3")

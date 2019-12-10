@@ -26,8 +26,8 @@ UpdateModel <- function(names, prediction.models, updating.samples) {
     ## Identify cutoff
     updated.prediction <- predict(updated.model, newdata = updating.sample)
     cutoff <- IdentifyCutoff(prediction = updated.prediction, data = updating.sample)
-    ## Return model
-    model <- list(model = model,
-                  cutoff = cutoff)
-    return(model)
+    ## Return updated model
+    return.object <- list(model = updated.model,
+                          cutoff = cutoff)
+    return(return.object)
 }
