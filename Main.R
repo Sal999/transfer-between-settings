@@ -67,6 +67,9 @@ selected.data.list$SweTrau <- DataCleaning(selected.data.list$SweTrau)
 ## Merge Swedish and India Selected data list
 combineddatasets <- do.call(rbind, selected.data.list)
 
+## Remove children
+combineddatasets <- combineddatasets[combineddatasets$age >= 15, ]
+
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
