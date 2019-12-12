@@ -19,12 +19,17 @@ UpdateModel <- function(names, prediction.models, updating.samples) {
     ## Update model
     prediction <- predict(model, newdata = updating.sample)
     Y <- as.numeric(updating.sample$m30d == "Yes")
-    offset.model <- glm(Y ~ offset(prediction), family = "binomial")
-    calibration.intercept <- coef(offset.model)[1]
+    updating.model <- glm(Y ~ prediction, family = "binomial")
+    calibration.intercept <- coef(updating.model)["(Intercept)"]
+    calibration.slope <- coef(updating.model)["prediction"]
     updated.model <- model
-    updated.model$coefficients["(Intercept)"] <- updated.model$coef["(Intercept)"]<- updated.model$coefficients["(Intercept)"] + calibration.intercept
+    intercept.i <- grep("(Intercept)", names(updated.model$coefficients), fixed = TRUE)
+    ## Update coefficients
+    updated.model$coefficients <- updated.model$coef <- updated.model$coefficients * calibration.slope
+    ## Update intercept
+    updated.model$coefficients[intercept.i] <- updated.model$coef[intercept.i] <- updated.model$coefficients[intercept.i] + calibration.intercept
     ## Identify cutoff
-    updated.prediction <- predict(updated.model, newdata = updating.sample)
+    updated.prediction <- predict(updated.model, newdata = updating.sample, type = "response")
     cutoff <- IdentifyCutoff(prediction = updated.prediction, data = updating.sample)
     ## Return updated model
     return.object <- list(model = updated.model,

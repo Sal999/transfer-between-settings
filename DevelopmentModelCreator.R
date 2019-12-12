@@ -11,8 +11,11 @@
 #'     variables. No default.
 #' @param test Logical. If TRUE only 5 bootstrap samples are used to estimate
 #'     the linear shrinkage factor. Defaults to FALSE.
+#' @param R A numeric vector of length 1. The number of bootstrap samples. If
+#'     NULL 1000 bootstrap samples are used to estimate the linear shrinkage
+#'     factor. Defaults to NULL.
 DevelopmentModelCreator <- function(development.data, outcome.name, level.1,
-                                    predictor.names, test = FALSE) {
+                                    predictor.names, test = FALSE, R = NULL) {
 
     ## Create model function
     log.reg.model <- function(model.data) {
@@ -37,21 +40,24 @@ DevelopmentModelCreator <- function(development.data, outcome.name, level.1,
         slope <- coef(calibration.model)["prediction"]
         return(slope)  
     }
-    R <- 1000
+    linear.shrinkage.factor <- 1
+    if (is.null(R))
+        R <- 1000
     if (test)
         R <- 5
-    linear.shrinkage.factor <- mean(boot(  
-        data = boot.data, 
-        statistic = get.prediction.slope, 
-        R = R
-    )$t)
+    if (R > 0) 
+        linear.shrinkage.factor <- mean(boot(  
+            data = boot.data, 
+            statistic = get.prediction.slope, 
+            R = R
+        )$t)
     ## Apply bootstrap results to shrink model coefficients
     development.model$coefficients <- development.model$coef <- development.model$coefficients * linear.shrinkage.factor
     ## Identify cutoff
-    prediction <- predict(development.model)
+    prediction <- predict(development.model, type = "response")
     cutoff <- IdentifyCutoff(prediction, development.data)
     ## Return model
-    model <- list(model = development.model,
-                  cutoff = cutoff)
-    return(model)
+    return.object <- list(model = development.model,
+                          cutoff = cutoff)
+    return(return.object)
 }

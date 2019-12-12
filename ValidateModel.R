@@ -14,7 +14,7 @@ ValidateModel <- function(names, prediction.models, validation.samples) {
     cutoff <- prediction.models[[model.name]]$cutoff
     validation.sample <- validation.samples[[sample.name]]
     ## Apply model and calculate mistriage 
-    prediction <- predict(model, newdata = validation.sample)
+    prediction <- predict(model, newdata = validation.sample, type = "response")
     major <- validation.sample$major
     undertriage <- CalculateUndertriage(cutoff, prediction, major)
     overtriage <- CalculateOvertriage(cutoff, prediction, major)
