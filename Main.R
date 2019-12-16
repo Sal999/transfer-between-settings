@@ -1,34 +1,45 @@
 ## Import data from a file called "data" which contains the swedish and indian register
 library(devtools)
 library(bengaltiger)
+library(boot)
+library(dummies)
+library(foreach)
 source("VariableSelection.R")
 source("NACounterDataSet.R")
 source("NACounterVariable.R")
 source("DataCleaning.R")
 source("MyReplace.R")
+source("DevelopmentModelCreator.R")
+source("UpdateModel.R")
+source("IdentifyCutoff.R")
+source("CalculateUndertriage.R")
+source("CalculateOvertriage.R")
+source("ValidateModel.R")
+
+## Set seed
+set.seed(2489)
 
 ## If bengaltiger is not installed do:
-##install_github("martingerdin/bengaltiger@develop")
-data.names <- list(swetrau = "simulated-swetrau-data.csv",
-                   titco = "titco-I-limited-dataset-v1.csv")
-data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../Desktop/data/")
+##install_github("martingerdin/bengaltiger@v1.1.4")
+data.names <- list(SweTrau = "swetrau-20110101-20160425.csv",
+                   TITCO = "titco-I-full-dataset-v1.csv",
+                   NTDB = "ntdb-2014-age-gender-issloc-sbp-gcstot-rr-m30d.csv")
+data.list <- lapply(data.names, bengaltiger::ImportStudyData, data.path = "../data/")
 
 ## Add 30-day mortality to titco data
-data.list$titco <- bengaltiger::Add30DayInHospitalMortality(data.list$titco)
+data.list$TITCO <- bengaltiger::Add30DayInHospitalMortality(data.list$TITCO)
 
 ## Make titco age numeric
-data.list$titco$age <- as.numeric(data.list$titco$age)
-
-## Create column called doi_toi inside titco data.frame and merge doi + toi columns to it
-data.list$titco$doi_toi <- paste(data.list$titco$doi, data.list$titco$toi)
+data.list$TITCO$age <- as.numeric(data.list$TITCO$age)
 
 ## Create study sample from selected variables from either sweden or india.
-variable.names.list <- list(swetrau = c("pt_age_yrs", "pt_Gender", "ed_gcs_sum",
+variable.names.list <- list(SweTrau = c("pt_age_yrs", "pt_Gender", "ed_gcs_sum",
                                         "ed_sbp_value", "ed_rr_value",
-                                        "res_survival", "ISS", 
-                                        "DateTime_Of_Trauma"),
-                            titco = c("age", "sex", "gcs_t_1", "sbp_1", "rr_1",
-                                      "m30d", "iss", "doi_toi"))
+                                        "res_survival", "ISS"),
+                            TITCO = c("age", "sex", "gcs_t_1", "sbp_1", "rr_1",
+                                      "m30d", "iss"),
+                            NTDB = c("age", "gender", "gcstot", "sbp", "rr",
+                                     "m30d", "issloc"))
 
 ##Calling Variableselection function to select 8 columns from variable name list
 dataNames <- function() setNames(nm = names(data.names))
@@ -37,9 +48,9 @@ selected.data.list <- lapply(dataNames(), VariableSelection,
                              variable.names.list = variable.names.list)
 
 ## Rename column names in other datasets with india column names
-not.titco <- names(selected.data.list) != "titco"
+not.titco <- names(selected.data.list) != "TITCO"
 selected.data.list[not.titco] <- lapply(selected.data.list[not.titco], function(selected.data) {
-  names(selected.data) <- names(selected.data.list$titco)
+  names(selected.data) <- names(selected.data.list$TITCO)
   return(selected.data)
 })
 
@@ -51,10 +62,13 @@ selected.data.list <- lapply(dataNames(), function(name) {
 })
 
 ## Clean data list of inconsistent values, e.g 1 to Male, 2 to Female etc.
-selected.data.list$swetrau <- DataCleaning(selected.data.list$swetrau)
+selected.data.list$SweTrau <- DataCleaning(selected.data.list$SweTrau)
 
 ## Merge Swedish and India Selected data list
 combineddatasets <- do.call(rbind, selected.data.list)
+
+## Remove children
+combineddatasets <- combineddatasets[combineddatasets$age >= 15, ]
 
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
@@ -66,7 +80,8 @@ numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
 numberOfNADataSet <- lapply(all.data.list, NACounterDataSet)
 
 ## Gets the revised trauma score components from the data set and adds them to the dataset
-combineddatasets[, c("trts_gcs", "trts_sbp", "trts_rr")] <- bengaltiger::GetRevisedTraumaScoreComponents(combineddatasets, return.labels = TRUE)
+trts.names <- c("trts_gcs", "trts_sbp", "trts_rr")
+combineddatasets[, trts.names] <- bengaltiger::GetRevisedTraumaScoreComponents(combineddatasets, return.labels = TRUE)
 
 ## Add new variable "major" in the dataset. If ISS is greater than 15, consider it a Major Trauma
 combineddatasets$major <- ifelse(combineddatasets$iss > 15, "Yes", "No")
@@ -97,8 +112,6 @@ codebook <- list(age = list(full.label = "Patient age, years",
                               abbreviated.label = ""),
                  m30d = list(full.label = "30-day survival",
                              abbreviated.label = ""),                 
-                 doi_toi = list(full.label = "Date of injury and time of injury",
-                                abbreviated.label = ""), 
                  dataset = list(full.label = "Dataset",
                                 abbreviated.label = ""))
 
@@ -106,29 +119,19 @@ codebook <- list(age = list(full.label = "Patient age, years",
 table1 <- bengaltiger::CreateSampleCharacteristicsTable(study.sample = combineddatasets,
                                                         codebook = codebook,
                                                         exclude.variables = "doi_toi",
-                                                        save.to.disk = FALSE,
+                                                        save.to.disk = TRUE,
                                                         save.to.results = FALSE,
-                                                        table.name = "SwetrauVstitco",
+                                                        table.name = "sample-characteristics-table",
                                                         include.overall = FALSE,
                                                         return.pretty = TRUE,
                                                         group = "dataset")
 
-## Split dataset into three categories Training (Development), Validation, Test (Updating) and add them as a new column
-cohorts <- split(combineddatasets, combineddatasets$dataset)
-split.cohorts <- lapply(cohorts, bengaltiger::SplitDataset, events = c(300,100,100), event.variable.name = "m30d", event.level = "Yes", sample.names = c("Development", "Updating", "Validation"))
+## Create T-RTS indicator variables
+trts.dummy.data <- dummy.data.frame(combineddatasets[, trts.names])
+names(trts.dummy.data) <- gsub("-|>|<", ".", names(trts.dummy.data))
+combineddatasets <- cbind(combineddatasets, trts.dummy.data)
 
-## Extract development samples
-development.samples <- lapply(split.cohorts, function(cohort) cohort$Development)
-
-## Create Model Function
-log.reg.model <- function(model.data) {
-  ## Run model "gcs_t_1", "sbp_1", "rr_1"
-  model <- glm(m30d ~ gcs_t_1 + sbp_1 + rr_1,
-               data = model.data,
-               family = "binomial")
-  ## Return model
-  return(model)
-}
-
-## Develop clinical prediction models
-prediction.models <- lapply(development.samples, log.reg.model)
+## Run analyses
+n.runs <- 10
+results <- foreach(run.id = 1:n.runs) %do% RunAnalyses(combineddatasets, run.id)
+    
