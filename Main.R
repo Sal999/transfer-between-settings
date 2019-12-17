@@ -145,8 +145,8 @@ combineddatasets <- cbind(combineddatasets, trts.dummy.data)
 
 ## Run analyses
 unlink("out")
-n.runs <- 10
-performance.list <- foreach(run.id = 1:n.runs) %dopar% RunAnalyses(combineddatasets, run.id)
+n.runs <- 100
+performance.list <- foreach(run.id = 1:n.runs, .packages = "boot") %dopar% RunAnalyses(combineddatasets, run.id)
 closeCluster(study.cluster)
 
 ## Calculate median and percentile range
