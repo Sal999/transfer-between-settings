@@ -145,7 +145,7 @@ combineddatasets <- cbind(combineddatasets, trts.dummy.data)
 
 ## Run analyses
 unlink("out")
-n.runs <- 4
+n.runs <- 10
 performance.list <- foreach(run.id = 1:n.runs) %dopar% RunAnalyses(combineddatasets, run.id)
 closeCluster(study.cluster)
 
