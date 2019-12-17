@@ -19,7 +19,7 @@ RunAnalyses <- function(combineddatasets, run.id) {
                          "trts_sbp76.89", "trts_sbp.89", "trts_rr1.5", "trts_rr6.9",
                          "trts_rr.29", "trts_rr10.29")
     test <- FALSE
-    R <- 0
+    R <- 1000
     prediction.models <- lapply(development.samples, DevelopmentModelCreator, outcome.name = outcome.name, level.1 = level.1, predictor.names = predictor.names, test = test, R = R)
 
     ## Update models
@@ -41,7 +41,11 @@ RunAnalyses <- function(combineddatasets, run.id) {
     validation.list <- lapply(validation.combinations, ValidateModel, prediction.models = all.models, validation.samples = validation.samples)
     validation.data <- do.call(rbind, validation.list)
     validation.data$run.id <- run.id
-    
+
+    ## Save to disk
+    dir.create("out")
+    saveRDS(validation.data, paste0("out/run-", run.id, ".Rds"))
+
     ## Return validation data
     return(validation.data)
 }

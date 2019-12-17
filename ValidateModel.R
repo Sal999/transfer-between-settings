@@ -20,6 +20,6 @@ ValidateModel <- function(names, prediction.models, validation.samples) {
     overtriage <- CalculateOvertriage(cutoff, prediction, major)
     mistriage <- undertriage + overtriage
     ## Return results
-    results <- data.frame(Model = model.name, Sample = sample.name, Undertriage = undertriage, Overtriage = overtriage, Mistriage = mistriage)
+    results <- data.frame(Model = model.name, Sample = sample.name, Undertriage = undertriage, Overtriage = overtriage, Mistriage = mistriage, stringsAsFactors = FALSE)
     return(results)
 }
