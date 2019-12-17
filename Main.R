@@ -1,4 +1,5 @@
 ## Import data from a file called "data" which contains the swedish and indian register
+library(doMPI)
 library(devtools)
 library(bengaltiger)
 library(boot)
@@ -15,9 +16,20 @@ source("IdentifyCutoff.R")
 source("CalculateUndertriage.R")
 source("CalculateOvertriage.R")
 source("ValidateModel.R")
+source("RunAnalyses.R")
+source("CompareModels.R")
+source("CreateResultTable.R")
+source("CreateResultTables.R")
+source("CalculateMedians.R")
+source("CalculatePercentileRanges.R")
 
 ## Set seed
 set.seed(2489)
+
+## Start the MPI cluster to prevent slaves to execute master code
+dir.create("log")
+study.cluster <- doMPI::startMPIcluster(count = 4, verbose = TRUE, logdir = "log")
+registerDoMPI(study.cluster)
 
 ## If bengaltiger is not installed do:
 ##install_github("martingerdin/bengaltiger@v1.1.4")
@@ -132,6 +144,13 @@ names(trts.dummy.data) <- gsub("-|>|<", ".", names(trts.dummy.data))
 combineddatasets <- cbind(combineddatasets, trts.dummy.data)
 
 ## Run analyses
-n.runs <- 10
-results <- foreach(run.id = 1:n.runs) %do% RunAnalyses(combineddatasets, run.id)
-    
+unlink("out")
+n.runs <- 4
+performance.list <- foreach(run.id = 1:n.runs) %dopar% RunAnalyses(combineddatasets, run.id)
+closeCluster(study.cluster)
+
+## Calculate median and percentile range
+result.tables <- CreateResultTables(performance.list)
+
+## Quit MPI
+mpi.quit()

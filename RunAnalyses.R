@@ -41,7 +41,11 @@ RunAnalyses <- function(combineddatasets, run.id) {
     validation.list <- lapply(validation.combinations, ValidateModel, prediction.models = all.models, validation.samples = validation.samples)
     validation.data <- do.call(rbind, validation.list)
     validation.data$run.id <- run.id
-    
+
+    ## Save to disk
+    dir.create("out")
+    saveRDS(validation.data, paste0("out/run-", run.id, ".Rds"))
+
     ## Return validation data
     return(validation.data)
 }
