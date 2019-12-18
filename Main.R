@@ -22,6 +22,7 @@ source("CreateResultTable.R")
 source("CreateResultTables.R")
 source("CalculateMedians.R")
 source("CalculatePercentileRanges.R")
+source("SaveSimpleTable.R")
 
 ## Set seed
 set.seed(2489)
@@ -85,11 +86,16 @@ combineddatasets <- combineddatasets[combineddatasets$age >= 15, ]
 ## Add combineddatasets to list
 all.data.list <- c(selected.data.list, list(combined.datasets = combineddatasets))
 
-## Calling NACounterVariable function and saving to new variable
+## Calling NACounterVariable function, saving to new variable, and save to disk
+NA.table.stub <- "NA-tables"
+unlink(paste0(NA.table.stub, ".", c("docx", "md")))
 numberOfNAVariable <- lapply(all.data.list, NACounterVariable)
+for (table.name in names(numberOfNAVariable)) SaveSimpleTable(table.name, numberOfNAVariable, file.stub = NA.table.stub, append = TRUE)
 
-## Calling NACounterDataSet function and saving to new variable
+## Calling NACounterDataSet function, saving to new variable, and save to disk
 numberOfNADataSet <- lapply(all.data.list, NACounterDataSet)
+for (table.name in names(numberOfNADataSet)) SaveSimpleTable(table.name, numberOfNADataSet, file.stub = NA.table.stub, append = TRUE)
+unlink(paste0(NA.table.stub, ".md"))
 
 ## Gets the revised trauma score components from the data set and adds them to the dataset
 trts.names <- c("trts_gcs", "trts_sbp", "trts_rr")
